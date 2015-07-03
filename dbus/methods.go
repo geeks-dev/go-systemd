@@ -263,6 +263,40 @@ type UnitStatus struct {
 	JobPath     dbus.ObjectPath // The job object path
 }
 
+// ListFileUnits returns an array with all currently loaded units. Note that
+// units may be known by multiple names at the same time, and hence there might
+// be more unit names loaded than actual units behind them.
+func (c *Conn) ListUnitFiles() ([]UnitFileStatus, error) {
+	result := make([][]interface{}, 0)
+	err := c.sysobj.Call("org.freedesktop.systemd1.Manager.ListUnitFiles", 0).Store(&result)
+	if err != nil {
+		return nil, err
+	}
+
+	resultInterface := make([]interface{}, len(result))
+	for i := range result {
+		resultInterface[i] = result[i]
+	}
+
+	status := make([]UnitFileStatus, len(result))
+	statusInterface := make([]interface{}, len(status))
+	for i := range status {
+		statusInterface[i] = &status[i]
+	}
+
+	err = dbus.Store(resultInterface, statusInterface...)
+	if err != nil {
+		return nil, err
+	}
+
+	return status, nil
+}
+
+type UnitFileStatus struct {
+	Name  string // The primary unit name as string
+	State string // The unit status
+}
+
 type LinkUnitFileChange EnableUnitFileChange
 
 // LinkUnitFiles() links unit files (that are located outside of the
